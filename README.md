@@ -91,6 +91,11 @@ This plugin provides three different user commands:
 
 - `:TinyGoEnv`: This commmand prints the currently configured target, `GOROOT` and `GOFLAGS`.
 
+- `:TinyGoFlash ?<target-name>`: This commmand flashes ... 
+
+- `:TinyGoMonitor <...>`: This command opens a floating window which streams the output of `tinygo monitor`.
+  You can provide additional cli flags to the command by appending them.
+
 Alternatively you can add a file (default: `.tinygo.json`) into your cwd and set your target there.
 This plugin automatically loads this config file on startup and dynamically reloads when the config
 file is changed.
