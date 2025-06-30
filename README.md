@@ -76,7 +76,7 @@ return {
 ```
 
 ## Options
-Addtionally you can provide the following options. 
+Additionally you can provide the following options. 
 
 - `config_file [optional]`: Defines the path to config file.
 
