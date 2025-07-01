@@ -15,9 +15,7 @@ function M.setup(opts)
 	local ok, goEnvJSON = pcall(vim.fn.json_decode, goEnv)
 	if not ok then vim.print("error parsing the go environment"); return end
 
-	if opts["config_file"] then
-		M.config_file = opts["config_file"]
-	end
+    M.loadOptions(opts)
 
 	M["originalGOROOT"]  = goEnvJSON["GOROOT"]
 	M["originalGOFLAGS"] = goEnvJSON["GOFLAGS"]
@@ -63,6 +61,15 @@ function M.loadOptions(opts)
     end
     if opts["cmd"] then
         M.tinygo = opts["cmd"]
+    end
+end
+
+function M.loadOptions(opts)
+    if opts["config_file"] then
+        M.config_file = opts["config_file"]
+    end
+    if opts["cmd"] then
+        M.tinygo= opts["cmd"]
     end
 end
 
@@ -318,7 +325,7 @@ function M.toggleMonitor(opts)
         args = opts.args
     end
 
-    M.floating.job = vim.system( {"tinygo", "monitor", args}, {
+    M.floating.job = vim.system( {M.tinygo, "monitor", args}, {
         text = true,
         stdout = M.writeToFloatingWindow,
         stderr = M.writeToFloatingWindow,
