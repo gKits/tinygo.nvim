@@ -1,5 +1,6 @@
 local M = {
     config_file = ".tinygo.json",
+    tinygo = "tinygo",
 
     floating = {
         buf = -1,
@@ -24,7 +25,7 @@ function M.setup(opts)
 	M["currentGOROOT"]  = M["originalGOROOT"]
 	M["currentGOFLAGS"] = M["originalGOFLAGS"]
 
-	local pipe = io.popen("tinygo targets")
+	local pipe = io.popen(M.tingyo .. " targets")
 
 	if not pipe then
 		vim.print("error executing 'tinygo targets'...")
@@ -56,9 +57,18 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd({"BufWritePost"}, {pattern=M.config_file, callback=M.applyConfigFile})
 end
 
+function M.loadOptions(opts)
+    if opts["config_file"] then
+        M.config_file = opts["config_file"]
+    end
+    if opts["cmd"] then
+        M.tinygo= opts["cmd"]
+    end
+end
+
 -- As seen on https://neovim.io/doc/user/api.html#nvim_create_user_command(), autocompletions written in
 -- Lua are treated as custom autocompletions, so we cannot leverage Nvim's builtin regexps...
-function M.targetOptions(ArgLead, CmdLine, CursorPos)
+function M.targetOptions(ArgLead, mdLine, ursorPos)
 	local filteredTargets = {}
 	for _, target in ipairs(M["targets"]) do
 		if string.find(target, ArgLead, 1, true) == 1 then
@@ -90,7 +100,7 @@ function M.setTarget(opts)
 		return
 	end
 
-	local ok, rawData = pcall(vim.fn.system, string.format("tinygo info -json %s", opts.fargs[1]))
+	local ok, rawData = pcall(vim.fn.system, string.format(M.tingyo .. " info -json %s", opts.fargs[1]))
 	if not ok then
 		vim.print("error calling tinygo: " .. rawData)
 		return
@@ -135,7 +145,7 @@ function M.flash(opts)
         return
     end
 
-    vim.system({"tinygo", "flash", "-target", target, "."}, {
+    vim.system({M.tinygo, "flash", "-target", target, "."}, {
         text = true,
         stdout = function (_, data) if data then vim.print(data) end end,
         stderr = function (_, data) if data then vim.print(data) end end,
@@ -144,7 +154,7 @@ end
 
 
 function M.printTargets()
-	local ok, targets = pcall(vim.fn.system, "tinygo targets")
+	local ok, targets = pcall(vim.fn.system, M.tingyo .. " targets")
 	if not ok then
 		vim.print("error calling tinygo: " .. targets)
 		return
@@ -236,7 +246,7 @@ function M.toggleMonitor(opts)
         args = opts.args
     end
 
-    M.floating.job = vim.system( {"tinygo", "monitor", args}, {
+    M.floating.job = vim.system( {M.tinygo, "monitor", args}, {
         text = true,
         stdout = M.writeToFloatingWindow,
         stderr = M.writeToFloatingWindow,
