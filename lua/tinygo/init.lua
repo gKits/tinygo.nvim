@@ -167,7 +167,7 @@ function M.applyConfigFile()
 
     local ok, rawCfg = pcall(f.read, f, "a")
     if not ok then
-        vim.print("error reading config file: ")
+        vim.print("error reading config file")
         f:close()
         return
     end
@@ -175,7 +175,7 @@ function M.applyConfigFile()
 
     local ok, cfg = pcall(vim.json.decode, rawCfg)
     if not ok then
-        vim.print("error decoding config file: ")
+        vim.print("error decoding config file")
         return
     end
 
