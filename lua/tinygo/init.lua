@@ -25,7 +25,7 @@ function M.setup(opts)
 	M["currentGOROOT"]  = M["originalGOROOT"]
 	M["currentGOFLAGS"] = M["originalGOFLAGS"]
 
-	local pipe = io.popen(M.tingyo .. " targets")
+	local pipe = io.popen(M.tinygo .. " targets")
 
 	if not pipe then
 		vim.print("error executing 'tinygo targets'...")
@@ -62,7 +62,7 @@ function M.loadOptions(opts)
         M.config_file = opts["config_file"]
     end
     if opts["cmd"] then
-        M.tinygo= opts["cmd"]
+        M.tinygo = opts["cmd"]
     end
 end
 
@@ -100,7 +100,7 @@ function M.setTarget(opts)
 		return
 	end
 
-	local ok, rawData = pcall(vim.fn.system, string.format(M.tingyo .. " info -json %s", opts.fargs[1]))
+	local ok, rawData = pcall(vim.fn.system, string.format(M.tinygo .. " info -json %s", opts.fargs[1]))
 	if not ok then
 		vim.print("error calling tinygo: " .. rawData)
 		return
@@ -154,7 +154,7 @@ end
 
 
 function M.printTargets()
-	local ok, targets = pcall(vim.fn.system, M.tingyo .. " targets")
+	local ok, targets = pcall(vim.fn.system, M.tinygo .. " targets")
 	if not ok then
 		vim.print("error calling tinygo: " .. targets)
 		return
