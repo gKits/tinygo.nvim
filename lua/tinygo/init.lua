@@ -15,6 +15,12 @@ function M.setup(opts)
 	local ok, goEnvJSON = pcall(vim.fn.json_decode, goEnv)
 	if not ok then vim.print("error parsing the go environment"); return end
 
+	M.loadOptions(opts)
+
+	if opts["config_file"] then
+		M.config_file = opts["config_file"]
+	end
+
 	M["originalGOROOT"]  = goEnvJSON["GOROOT"]
 	M["originalGOFLAGS"] = goEnvJSON["GOFLAGS"]
 	M["currentTarget"] = "original"
