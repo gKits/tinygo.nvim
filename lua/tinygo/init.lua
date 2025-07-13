@@ -243,12 +243,16 @@ function M.toggleMonitor(opts)
 		M.floating = { buf = -1, win = -1 }
 	end})
 
+	vim.keymap.set({"n"},"q", function ()
+		vim.api.nvim_win_close(M.floating.win, true)
+	end, {buffer=M.floating.buf, silent=true, noremap=true})
+
 	local args = ""
 	if opts.args then
 		args = opts.args
 	end
 
-	M.floating.job = vim.system( {M.tinygo, "monitor", args}, {
+	M.floating.job = vim.system({M.tinygo, "monitor", args}, {
 		text = true,
 		stdout = M.writeToFloatingWindow,
 		stderr = M.writeToFloatingWindow,
