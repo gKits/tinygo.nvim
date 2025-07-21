@@ -70,7 +70,7 @@ end
 
 -- As seen on https://neovim.io/doc/user/api.html#nvim_create_user_command(), autocompletions written in
 -- Lua are treated as custom autocompletions, so we cannot leverage Nvim's builtin regexps...
-function M.targetOptions(ArgLead, mdLine, ursorPos)
+function M.targetOptions(ArgLead, cmdLine, cursorPos)
 	local filteredTargets = {}
 	for _, target in ipairs(M["targets"]) do
 		if string.find(target, ArgLead, 1, true) == 1 then
