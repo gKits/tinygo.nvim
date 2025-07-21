@@ -17,10 +17,6 @@ function M.setup(opts)
 
 	M.loadOptions(opts)
 
-	if opts["config_file"] then
-		M.config_file = opts["config_file"]
-	end
-
 	M["originalGOROOT"]  = goEnvJSON["GOROOT"]
 	M["originalGOFLAGS"] = goEnvJSON["GOFLAGS"]
 	M["currentTarget"] = "original"
