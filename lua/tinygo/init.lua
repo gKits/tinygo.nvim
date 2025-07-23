@@ -2,14 +2,20 @@ local M = {
 	config_file = ".tinygo.json",
 	tinygo = "tinygo",
 
-	monitor = {
-		---@type floating.Window?
-		float = nil,
-		---@type vim.SystemObj?
-		job = nil
-	}
+	monitor = nil ---@type monitor.Monitor?
 }
 
+---@class tinygo.SetupOpts
+---@field cmd? string: The TinyGo command to execute [default: tinygo]
+---@field config_file? string: The name of the config file [default: .tinygo.json]
+---@field monitor? tinygo.SetupMonitorOpts:
+
+---@class tinygo.SetupMonitorOpts
+---@field width? integer:
+---@field height? integer:
+---@field style? monitor.Style
+
+---@param opts tinygo.SetupOpts
 function M.setup(opts)
 	local ok, goEnv = pcall(vim.fn.system, "go env -json")
 	if not ok then vim.print("go is not in the PATH..."); return end
@@ -57,12 +63,13 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd({"BufWritePost"}, {pattern=M.config_file, callback=M.applyConfigFile})
 end
 
+---@param opts tinygo.SetupOpts
 function M.loadOptions(opts)
-	if opts["config_file"] then
-		M.config_file = opts["config_file"]
+	if opts.config_file then
+		M.config_file = opts.config_file
 	end
-	if opts["cmd"] then
-		M.tinygo = opts["cmd"]
+	if opts.cmd then
+		M.tinygo = opts.cmd
 	end
 end
 
@@ -191,8 +198,8 @@ function M.applyConfigFile()
 end
 
 function M.toggleMonitor(opts)
-	local floating = require("tinygo.floating")
-	M.monitor.float = floating.new({
+	local monitor = require("tinygo.monitor")
+	M.monitor = monitor:new({
 		header={
 			"TinyGo Monitor",
 			"'q' quit | 'd' detach | 'r' reattach | 'c' clear",
@@ -200,66 +207,46 @@ function M.toggleMonitor(opts)
 	})
 
 	if M.monitor.job then
-		M.monitor.job:kill(1)
+		vim.api.nvim_win_close(M.monitor.win, true)
 	end
 
-	local args = ""
-	if opts.args then
-		args = opts.args
-	end
-
-	local writeMonitor = function (_, data)
-		floating.write(M.monitor.float, data)
-	end
-
-	local killJob = function ()
-		if M.monitor.job then
-			M.monitor.job:kill(1)
-			M.monitor.job = nil
-			floating.write(M.monitor.float, "-- Detached from serial monitor! --")
-		end
-	end
-
-	local startJob = function ()
-		-- M.monitor.job = vim.system({M.tinygo, "monitor", args}, {
-		M.monitor.job = vim.system({"ping", "localhost", args}, {
-			text = true,
-			stdout = writeMonitor,
-			stderr = writeMonitor,
-		})
+	-- local cmd = {M.tinygo, "monitor", args}
+	local cmd = {"ping", "localhost"}
+	if opts.args and opts.args ~= "" then
+		cmd[#cmd+1] = opts.args
 	end
 
 	-- Add keymaps and autocmd to the local monitoring buffer
-	vim.api.nvim_create_autocmd({"BufLeave"}, {once=true, buffer=M.monitor.float.buf, callback=function ()
-		M.monitor.float = nil
-		killJob()
+	vim.api.nvim_create_autocmd({"BufLeave"}, {once=true, buffer=M.monitor.buf, callback=function ()
+		M.monitor:kill_job()
+		M.monitor = nil
 	end})
 
 	---@type vim.keymap.set.Opts
-	local keymapOpts = {buffer=M.monitor.float.buf, silent=true, noremap=true}
+	local keymapOpts = {buffer=M.monitor.buf, silent=true, noremap=true}
 
 	opts.desc = "TinyGo: [c]lear floating window"
 	vim.keymap.set({"n"},"c", function ()
-		floating.clear(M.monitor.float)
+		M.monitor:clear()
 	end, keymapOpts)
 
 	opts.desc = "TinyGo: [q]uit serial monitor"
 	vim.keymap.set({"n"},"q", function ()
-		vim.api.nvim_win_close(M.monitor.float.win, true)
+		vim.api.nvim_win_close(M.monitor.win, true)
 	end, keymapOpts)
 
 	opts.desc = "TinyGo: [d]etach from serial monitor without closing floating window"
 	vim.keymap.set({"n"},"d", function ()
-		killJob()
+		M.monitor:kill_job("-- Detached from serial monitor! --")
 	end, keymapOpts)
 
 	opts.desc = "TinyGo: [r]eattach serial monitor"
 	vim.keymap.set({"n"},"r", function ()
-		killJob()
-		startJob()
+		M.monitor:kill_job("-- Detached from serial monitor! --")
+		M.monitor:start_job(cmd)
 	end, keymapOpts)
 
-	startJob()
+	M.monitor:start_job(cmd)
 end
 
 return M
