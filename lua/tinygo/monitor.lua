@@ -11,31 +11,38 @@ Monitor = {}
 ---| "vertical"
 
 ---@class monitor.Opts
----@field width? integer: The width of the monitor window
----@field height? integer: The height of the monitor window
+---@field width? number: The width of the monitor window in percent [0..1]
+---@field height? number: The height of the monitor window in percent [0..1]
 ---@field header? string[]: The header lines of the monitor window
 ---@field style? monitor.Style: The style of the monitor window
 
 ---@param opts? monitor.Opts
----@return monitor.Monitor
+---@return monitor.Monitor|nil
 function Monitor:new(opts)
 	opts = opts or {}
+
+	if opts.height and (opts.height > 1 or opts.height < 0) then
+		error("height must be fraction between 0 and 1")
+	end
+	if opts.width and (opts.width > 1 or opts.width < 0) then
+		error("width must be fraction between 0 and 1")
+	end
 
 	---@type vim.api.keyset.win_config
 	local win_config = {style = "minimal"}
 	local width, height = vim.o.columns, vim.o.lines
 	if opts.style == "floating" or not opts.style then
-		width = opts.width or math.floor(vim.o.columns * 0.65)
-		height = opts.height or math.floor(vim.o.lines * 0.8)
+		width = math.floor(vim.o.columns * (opts.width or 0.65))
+		height = math.floor(vim.o.lines * (opts.height or 0.8))
 		win_config.relative = "editor"
 		win_config.col = math.floor((vim.o.columns - width) / 2)
 		win_config.row = math.floor((vim.o.lines - height) / 2)
 		win_config.border = "rounded"
 	elseif opts.style == "horizontal" then
-		height = opts.height or math.floor(vim.o.lines * 0.5)
+		height = math.floor(vim.o.lines * (opts.height or 0.5))
 		win_config.split = "above"
 	elseif opts.style == "vertical" then
-		width = opts.width or math.floor(vim.o.columns * 0.5)
+		width = math.floor(vim.o.columns * (opts.width or 0.5))
 		win_config.split = "right"
 	end
 	win_config.width = width

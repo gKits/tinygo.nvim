@@ -1,18 +1,19 @@
 local M = {
-	config_file = ".tinygo.json",
+	configFile = ".tinygo.json",
 	tinygo = "tinygo",
 
-	monitor = nil ---@type monitor.Monitor?
+	monitor = nil, ---@type monitor.Monitor?
+	monitorOpts = nil, ---@type tinygo.SetupMonitorOpts?
 }
 
 ---@class tinygo.SetupOpts
 ---@field cmd? string: The TinyGo command to execute [default: tinygo]
 ---@field config_file? string: The name of the config file [default: .tinygo.json]
----@field monitor? tinygo.SetupMonitorOpts:
+---@field monitor? tinygo.SetupMonitorOpts
 
 ---@class tinygo.SetupMonitorOpts
----@field width? integer:
----@field height? integer:
+---@field width? number
+---@field height? number
 ---@field style? monitor.Style
 
 ---@param opts tinygo.SetupOpts
@@ -60,16 +61,19 @@ function M.setup(opts)
 			end
 		end,
 	})
-	vim.api.nvim_create_autocmd({"BufWritePost"}, {pattern=M.config_file, callback=M.applyConfigFile})
+	vim.api.nvim_create_autocmd({"BufWritePost"}, {pattern=M.configFile, callback=M.applyConfigFile})
 end
 
 ---@param opts tinygo.SetupOpts
 function M.loadOptions(opts)
 	if opts.config_file then
-		M.config_file = opts.config_file
+		M.configFile = opts.config_file
 	end
 	if opts.cmd then
 		M.tinygo = opts.cmd
+	end
+	if opts.monitor then
+		M.monitorOpts = opts.monitor
 	end
 end
 
@@ -172,7 +176,7 @@ function M.printEnv()
 end
 
 function M.applyConfigFile()
-	local f = io.open(M.config_file, "r")
+	local f = io.open(M.configFile, "r")
 	if not f then
 		return
 	end
@@ -198,26 +202,35 @@ function M.applyConfigFile()
 end
 
 function M.toggleMonitor(opts)
-	local monitor = require("tinygo.monitor")
-	M.monitor = monitor:new({
+	---@type monitor.Opts
+	local setupOpts = {
 		header={
 			"TinyGo Monitor",
 			"'q' quit | 'd' detach | 'r' reattach | 'c' clear",
 		},
-	})
+	}
+	if M.monitorOpts.height then
+		setupOpts.height = M.monitorOpts.height
+	end
+	if M.monitorOpts.width then
+		setupOpts.width = M.monitorOpts.width
+	end
+	if M.monitorOpts.style then
+		setupOpts.style = M.monitorOpts.style
+	end
+	M.monitor = require("tinygo.monitor"):new(setupOpts)
 
 	if M.monitor.job then
 		vim.api.nvim_win_close(M.monitor.win, true)
 	end
 
-	-- local cmd = {M.tinygo, "monitor", args}
-	local cmd = {"ping", "localhost"}
+	local cmd = {M.tinygo, "monitor"}
 	if opts.args and opts.args ~= "" then
 		cmd[#cmd+1] = opts.args
 	end
 
 	-- Add keymaps and autocmd to the local monitoring buffer
-	vim.api.nvim_create_autocmd({"BufLeave"}, {once=true, buffer=M.monitor.buf, callback=function ()
+	vim.api.nvim_create_autocmd({"BufWinLeave"}, {once=true, buffer=M.monitor.buf, callback=function ()
 		M.monitor:kill_job()
 		M.monitor = nil
 	end})
