@@ -99,6 +99,7 @@ function M.setTarget(opts)
 
     for _, c in ipairs(clients)do
         local cfg = c.config
+        vim.lsp.stop_client(c.id, true)
         if opts.fargs[1] == "original" then
             M["currentTarget"] = opts.fargs[1]
             M["currentGOROOT"] = M["originalGOROOT"]
@@ -109,24 +110,24 @@ function M.setTarget(opts)
                 GOFLAGS = M["originalGOFLAGS"],
             }
             vim.lsp.config.gopls = cfg
-            return
+            break
         end
 
         local ok, rawData = pcall(vim.fn.system, string.format(M.tinygo .. " info -json %s", opts.fargs[1]))
         if not ok then
             vim.print("error calling tinygo: " .. rawData)
-            return
+            break
         end
 
         local ok, rawJSON = pcall(vim.fn.json_decode, rawData)
         if not ok then
             vim.print("error decoding the JSON: " .. rawJSON)
-            return
+            break
         end
 
         if not vim.fn.has_key(rawJSON, "goroot") or not vim.fn.has_key(rawJSON, "build_tags") then
             vim.print("the generated JSON is missing keys...")
-            return
+            break
         end
 
         local currentGOROOT = rawJSON["goroot"]
@@ -142,8 +143,10 @@ function M.setTarget(opts)
         }
 
         vim.lsp.config.gopls = cfg
-        return
+        break
     end
+    vim.cmd.update()
+	vim.defer_fn(vim.cmd.edit, 1000)
 end
 
 function M.flash(opts)
