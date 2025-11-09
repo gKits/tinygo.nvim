@@ -82,57 +82,59 @@ function M.targetOptions(ArgLead, mdLine, ursorPos)
 end
 
 function M.setTarget(opts)
-	local ok, lspconfig = pcall(require, "lspconfig")
-	if not ok then
-		vim.print("error requiring lspconfig...")
-		return
-	end
+    local clients = vim.lsp.get_clients({name="gopls"})
+    if #clients <= 0 then
+        vim.print("gopls is not running")
+        return
+    end
 
-	if opts.fargs[1] == "original" then
-		M["currentTarget"] = opts.fargs[1]
-		M["currentGOROOT"] = M["originalGOROOT"]
-		M["currentGOFLAGS"] = M["originalGOFLAGS"]
+    for _, c in ipairs(clients)do
+        local cfg = c.config
+        if opts.fargs[1] == "original" then
+            M["currentTarget"] = opts.fargs[1]
+            M["currentGOROOT"] = M["originalGOROOT"]
+            M["currentGOFLAGS"] = M["originalGOFLAGS"]
 
-		lspconfig.gopls.setup({
-			cmd_env = {
-				GOROOT  = M["originalGOROOT"],
-				GOFLAGS = M["originalGOFLAGS"]
-			}
-		})
-		return
-	end
+            cfg.cmd_env= {
+                GOROOT = M["originalGOROOT"],
+                GOFLAGS = M["originalGOFLAGS"],
+            }
+            vim.lsp.config.gopls = cfg
+            return
+        end
 
-	local ok, rawData = pcall(vim.fn.system, string.format(M.tinygo .. " info -json %s", opts.fargs[1]))
-	if not ok then
-		vim.print("error calling tinygo: " .. rawData)
-		return
-	end
+        local ok, rawData = pcall(vim.fn.system, string.format(M.tinygo .. " info -json %s", opts.fargs[1]))
+        if not ok then
+            vim.print("error calling tinygo: " .. rawData)
+            return
+        end
 
-	local ok, rawJSON = pcall(vim.fn.json_decode, rawData)
-	if not ok then
-		vim.print("error decoding the JSON: " .. rawJSON)
-		return
-	end
+        local ok, rawJSON = pcall(vim.fn.json_decode, rawData)
+        if not ok then
+            vim.print("error decoding the JSON: " .. rawJSON)
+            return
+        end
 
-	if not vim.fn.has_key(rawJSON, "goroot") or not vim.fn.has_key(rawJSON, "build_tags") then
-		vim.print("the generated JSON is missing keys...")
-		return
-	end
+        if not vim.fn.has_key(rawJSON, "goroot") or not vim.fn.has_key(rawJSON, "build_tags") then
+            vim.print("the generated JSON is missing keys...")
+            return
+        end
 
-	local currentGOROOT = rawJSON["goroot"]
-	local currentGOFLAGS = "-tags=" .. vim.fn.join(rawJSON["build_tags"], ',')
+        local currentGOROOT = rawJSON["goroot"]
+        local currentGOFLAGS = "-tags=" .. vim.fn.join(rawJSON["build_tags"], ',')
 
-	M["currentTarget"] = opts.fargs[1]
-	M["currentGOROOT"] = currentGOROOT
-	M["currentGOFLAGS"] = currentGOFLAGS
+        M["currentTarget"] = opts.fargs[1]
+        M["currentGOROOT"] = currentGOROOT
+        M["currentGOFLAGS"] = currentGOFLAGS
 
-	-- This'll restart the LSP server!
-	lspconfig.gopls.setup({
-		cmd_env = {
-			GOROOT = currentGOROOT,
-			GOFLAGS = currentGOFLAGS
-		}
-	})
+        cfg.cmd_env = {
+            GOROOT = currentGOROOT,
+            GOFLAGS = currentGOFLAGS
+        }
+
+        vim.lsp.config.gopls = cfg
+        return
+    end
 end
 
 function M.flash(opts)
